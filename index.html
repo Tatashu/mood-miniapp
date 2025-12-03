@@ -1,29 +1,167 @@
-textContent = 'Есть сохранённая запись (локально). Нажмите "Отправить" для передачи боту.';
-    } else {
-      setSelected(null, false);
-      statusEl.textContent = '';
-    }
-  })();
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Опрос настроения — Telegram Mini App</title>
 
-  // Попытка плавной интеграции с Telegram UI (подкрутить кнопки внизу web app)
-  try {
-    if (window.Telegram && window.Telegram.WebApp){
-      const WebApp = window.Telegram.WebApp;
-      // Если хотим адаптировать размер под Telegram
-      if (typeof WebApp.expand === 'function') {
-        WebApp.expand(); // попросим Telegram расширить окно (если поддерживается)
-      }
-      // Настроим внешний вид кнопки внизу (пример)
-      if (WebApp.MainButton) {
-        // прячем дефолтную кнопку Telegram, чтобы не мешала
-        try { WebApp.MainButton.hide(); } catch(e) {}
-      }
-    }
-  } catch(e){
-    // ничего
+<!-- Тёмная тема по умолчанию -->
+<style>
+  :root{
+    --bg: #0b0f13;
+    --card: rgba(255,255,255,0.04);
+    --muted: #9aa6b2;
+    --accent-start: #6ee7b7;
+    --accent-end: #60a5fa;
+    --glass: rgba(255,255,255,0.03);
+    --glass-2: rgba(255,255,255,0.02);
+    --glass-border: rgba(255,255,255,0.06);
+    --glass-highlight: rgba(255,255,255,0.02);
+    --text: #e6eef6;
+    --success: #34d399;
+    --danger: #fb7185;
+    --max-width: 480px;
+    --radius: 18px;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
   }
 
-})();
-</script>
-</body>
-</html>
+  html,body{
+    height:100%;
+    margin:0;
+    background: radial-gradient(1200px 600px at 10% 10%, rgba(96,165,250,0.07), transparent 10%),
+                radial-gradient(800px 400px at 90% 90%, rgba(110,231,183,0.05), transparent 10%),
+                var(--bg);
+    color:var(--text);
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+  }
+
+  .wrap{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:28px;
+    box-sizing:border-box;
+  }
+
+  .card{
+    width:100%;
+    max-width:var(--max-width);
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border-radius: calc(var(--radius) + 6px);
+    padding:22px;
+    box-sizing:border-box;
+    box-shadow: 0 12px 30px rgba(2,6,23,0.6), inset 0 1px 0 rgba(255,255,255,0.02);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(8px) saturate(1.05);
+  }
+
+  header{
+    display:flex;
+    gap:12px;
+    align-items:center;
+    margin-bottom:14px;
+  }
+  .logo{
+    width:56px;
+    height:56px;
+    border-radius:14px;
+    background: linear-gradient(135deg,var(--accent-start), var(--accent-end));
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    box-shadow: 0 6px 18px rgba(96,165,250,0.12);
+    font-weight:700;
+    font-size:20px;
+    color:#022;
+  }
+  h1{
+    margin:0;
+    font-size:18px;
+    line-height:1.05;
+    letter-spacing:-0.2px;
+  }
+  p.lead{
+    margin:6px 0 0 0;
+    color:var(--muted);
+    font-size:13px;
+  }
+
+  .meter{
+    margin-top:18px;
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+    align-items:center;
+  }
+
+  /* шкала со смайликами */
+  .scale{
+    width:100%;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    padding:10px;
+    background: linear-gradient(180deg, var(--glass), transparent);
+    border-radius:14px;
+    border:1px solid var(--glass-border);
+  }
+
+  .mood-btn{
+    --size:64px;
+    width:var(--size);
+    height:var(--size);
+    display:inline-grid;
+    place-items:center;
+    border-radius:14px;
+    cursor:pointer;
+    user-select:none;
+    background:transparent;
+    border:none;
+    transition:transform .18s cubic-bezier(.2,.9,.3,1), box-shadow .18s;
+    outline: none;
+    color:var(--text);
+    font-size:28px;
+  }
+  .mood-btn:hover{ transform:translateY(-6px) scale(1.03); }
+  .mood-btn:active{ transform:translateY(-2px) scale(0.99); }
+
+  .mood-btn[aria-pressed="true"]{
+    box-shadow: 0 10px 30px rgba(2,6,23,0.6), 0 6px 18px rgba(96,165,250,0.12);
+    transform:translateY(-10px) scale(1.06);
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  }
+
+  .labels{
+    width:100%;
+    display:flex;
+    justify-content:space-between;
+    margin-top:6px;
+    color:var(--muted);
+    font-size:12px;
+    padding:0 2px;
+  }
+
+  .note{
+    margin-top:12px;
+    color:var(--muted);
+    font-size:13px;
+    text-align:center;
+  }
+
+  .controls{
+    display:flex;
+    gap:10px;
+    margin-top:18px;
+    justify-content:center;
+    align-items:center;
+  }
+
+  .btn{
+    min-width:120px;
+    padding:10px 14px;
+    border-radius:12px;
+    border: 1px solid var(--glass-border);
+    background: linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.01));
