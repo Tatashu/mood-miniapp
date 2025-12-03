@@ -143,6 +143,15 @@
     font-size:12px;
     padding:0 2px;
   }
+  .labels span {
+  transition: color .15s, transform .15s;
+}
+
+.labels span.active {
+  color: var(--accent-end);
+  transform: translateY(-2px);
+  font-weight: 600;
+}
 
   .note{
     margin-top:12px;
@@ -230,11 +239,11 @@
         </div>
 
         <div class="labels" aria-hidden="true">
-          <span>Очень плохо</span>
-          <span>Плохо</span>
-          <span>Нормально</span>
-          <span>Хорошо</span>
-          <span>Отлично</span>
+          <span data-label="1">Очень плохо</span>
+          <span data-label="2">Плохо</span>
+          <span data-label="3">Нормально</span>
+          <span data-label="4">Хорошо</span>
+          <span data-label="5">Отлично</span>
         </div>
 
         <p class="note">Нажми смайлик или клавишу цифры 1–5. Данные сохраняются локально и могут быть отправлены боту.</p>
@@ -273,20 +282,30 @@
 
   // Установить выбранный индекс
   function setSelected(value, announce=true){
-    moodBtns.forEach(btn => {
-      const pressed = String(btn.dataset.value) === String(value);
-      btn.setAttribute('aria-pressed', pressed ? 'true' : 'false');
-    });
-    if (value === null || value === undefined) {
-      statusEl.textContent = '';
-      timeEl.textContent = '—';
-      return;
+  moodBtns.forEach(btn => {
+    const pressed = String(btn.dataset.value) === String(value);
+    btn.setAttribute('aria-pressed', pressed ? 'true' : 'false');
+  });
+
+  // Подсветка подписей
+  document.querySelectorAll('.labels span').forEach(label => {
+    if (label.dataset.label === String(value)) {
+      label.classList.add('active');
+    } else {
+      label.classList.remove('active');
     }
-    // Показать время, если сохранено
-    const now = Date.now();
-    timeEl.textContent = 'Выбрано: ' + formatTime(now);
-    if (announce) statusEl.textContent = 'Выбрано: ' + value + ' • нажмите "Отправить"';
+  });
+
+  if (value === null || value === undefined) {
+    statusEl.textContent = '';
+    timeEl.textContent = '—';
+    return;
   }
+
+  const now = Date.now();
+  timeEl.textContent = 'Выбрано: ' + formatTime(now);
+  if (announce) statusEl.textContent = 'Выбрано: ' + value + ' • нажмите "Отправить"';
+}
 
  // Получить выбранное значение
   function getSelected(){
