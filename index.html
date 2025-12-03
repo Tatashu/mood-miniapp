@@ -1,167 +1,260 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Опрос настроения — Telegram Mini App</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Настроение</title>
+  <script src="https://js.telegram.org/bot/api.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --text: var(--tg-theme-text-color, #e2e8f0);
+      --hint: var(--tg-theme-hint-color, #94a3b8);
+      --bg: var(--tg-theme-bg-color, #0f172a);
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px 16px;
+      overflow: hidden;
+    }
+    .title {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 32px;
+      opacity: 0.85;
+      text-align: center;
+    }
 
-<!-- Тёмная тема по умолчанию -->
-<style>
-  :root{
-    --bg: #0b0f13;
-    --card: rgba(255,255,255,0.04);
-    --muted: #9aa6b2;
-    --accent-start: #6ee7b7;
-    --accent-end: #60a5fa;
-    --glass: rgba(255,255,255,0.03);
-    --glass-2: rgba(255,255,255,0.02);
-    --glass-border: rgba(255,255,255,0.06);
-    --glass-highlight: rgba(255,255,255,0.02);
-    --text: #e6eef6;
-    --success: #34d399;
-    --danger: #fb7185;
-    --max-width: 480px;
-    --radius: 18px;
-    font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-  }
+    /* Основной круг */
+    .mood-circle {
+      position: relative;
+      width: 280px;
+      height: 280px;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      background: conic-gradient(
+        from 90deg at 50% 50%,
+        /* 0–19: фиолетовый */
+        #c084fc 0%,
+        #a78bfa 19%,
+        /* 20–59: переход */
+        #a78bfa 20%,
+        #60a5fa 35%,
+        #38bdf8 59%,
+        /* 60–100: бирюзовый */
+        #38bdf8 60%,
+        #22d3ee 80%,
+        #06b6d4 100%
+      );
+      border: 1px solid rgba(148, 163, 184, 0.15);
+      box-shadow:
+        0 8px 24px rgba(0,0,0,0.2),
+        inset 0 0 0 1px rgba(255,255,255,0.03);
+      cursor: ns-resize;
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+                  box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
 
-  html,body{
-    height:100%;
-    margin:0;
-    background: radial-gradient(1200px 600px at 10% 10%, rgba(96,165,250,0.07), transparent 10%),
-                radial-gradient(800px 400px at 90% 90%, rgba(110,231,183,0.05), transparent 10%),
-                var(--bg);
-    color:var(--text);
-    -webkit-font-smoothing:antialiased;
-    -moz-osx-font-smoothing:grayscale;
-  }
+    /* Мягкая пульсация */
+    @keyframes soft-pulse {
+      0% { transform: scale(1); box-shadow: 0 8px 24px rgba(0,0,0,0.2), inset 0 0 0 1px rgba(255,255,255,0.03); }
+      50% { transform: scale(1.02); box-shadow: 0 10px 30px rgba(0,0,0,0.25), 0 0 0 12px rgba(139, 92, 246, 0.15); }
+      100% { transform: scale(1); }
+    }
+    .mood-circle.pulse {
+      animation: soft-pulse 0.9s cubic-bezier(0.2, 0.8, 0.4, 1);
+    }
 
-  .wrap{
-    min-height:100vh;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    padding:28px;
-    box-sizing:border-box;
-  }
+    /* Контент внутри */
+    .center {
+      text-align: center;
+      z-index: 2;
+      pointer-events: none;
+    }
+    .emoji {
+      font-size: 72px;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+    .value {
+      font-size: 28px;
+      font-weight: 700;
+      background: linear-gradient(90deg, #ffffff, #c084fc);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
 
-  .card{
-    width:100%;
-    max-width:var(--max-width);
-    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
-    border-radius: calc(var(--radius) + 6px);
-    padding:22px;
-    box-sizing:border-box;
-    box-shadow: 0 12px 30px rgba(2,6,23,0.6), inset 0 1px 0 rgba(255,255,255,0.02);
-    border: 1px solid var(--glass-border);
-    backdrop-filter: blur(8px) saturate(1.05);
-  }
+    button {
+      background: rgba(30, 41, 59, 0.5);
+      color: white;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 16px;
+      padding: 14px 32px;
+      font-size: 17px;
+      font-weight: 600;
+      margin-top: 32px;
+      cursor: pointer;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+      transition: all 0.25s ease;
+    }
+    button:hover { transform: translateY(-2px); }
+    button:active { transform: translateY(0) scale(0.99); }
 
-  header{
-    display:flex;
-    gap:12px;
-    align-items:center;
-    margin-bottom:14px;
-  }
-  .logo{
-    width:56px;
-    height:56px;
-    border-radius:14px;
-    background: linear-gradient(135deg,var(--accent-start), var(--accent-end));
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    box-shadow: 0 6px 18px rgba(96,165,250,0.12);
-    font-weight:700;
-    font-size:20px;
-    color:#022;
-  }
-  h1{
-    margin:0;
-    font-size:18px;
-    line-height:1.05;
-    letter-spacing:-0.2px;
-  }
-  p.lead{
-    margin:6px 0 0 0;
-    color:var(--muted);
-    font-size:13px;
-  }
+    .status {
+      margin-top: 18px;
+      font-size: 14px;
+      color: var(--hint);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="title">Как настроение?</div>
 
-  .meter{
-    margin-top:18px;
-    display:flex;
-    flex-direction:column;
-    gap:14px;
-    align-items:center;
-  }
+  <div class="mood-circle" id="moodCircle">
+    <div class="center">
+      <div class="emoji" id="emoji">🙂</div>
+      <div class="value" id="value">50</div>
+    </div>
+  </div>
 
-  /* шкала со смайликами */
-  .scale{
-    width:100%;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    gap:10px;
-    padding:10px;
-    background: linear-gradient(180deg, var(--glass), transparent);
-    border-radius:14px;
-    border:1px solid var(--glass-border);
-  }
+  <button id="saveBtn">Сохранить</button>
+  <div class="status" id="status"></div>
 
-  .mood-btn{
-    --size:64px;
-    width:var(--size);
-    height:var(--size);
-    display:inline-grid;
-    place-items:center;
-    border-radius:14px;
-    cursor:pointer;
-    user-select:none;
-    background:transparent;
-    border:none;
-    transition:transform .18s cubic-bezier(.2,.9,.3,1), box-shadow .18s;
-    outline: none;
-    color:var(--text);
-    font-size:28px;
-  }
-  .mood-btn:hover{ transform:translateY(-6px) scale(1.03); }
-  .mood-btn:active{ transform:translateY(-2px) scale(0.99); }
+  <script>
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
+      tg.expand();
+      tg.ready();
+      tg.setBackgroundColor('#0f172a');
+    }
 
-  .mood-btn[aria-pressed="true"]{
-    box-shadow: 0 10px 30px rgba(2,6,23,0.6), 0 6px 18px rgba(96,165,250,0.12);
-    transform:translateY(-10px) scale(1.06);
-    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
-  }
+    // DOM
+    const moodCircle = document.getElementById('moodCircle');
+    const emojiEl = document.getElementById('emoji');
+    const valueEl = document.getElementById('value');
+    const saveBtn = document.getElementById('saveBtn');
+    const statusEl = document.getElementById('status');
 
-  .labels{
-    width:100%;
-    display:flex;
-    justify-content:space-between;
-    margin-top:6px;
-    color:var(--muted);
-    font-size:12px;
-    padding:0 2px;
-  }
+    // Состояние
+    let moodValue = 50;
+    let startY = 0;
+    let isDragging = false;
 
-  .note{
-    margin-top:12px;
-    color:var(--muted);
-    font-size:13px;
-    text-align:center;
-  }
+    // Обновление UI
+    function updateUI() {
+      // Позиция заливки: поворачиваем градиент
+      const angle = (moodValue / 100) * 360;
+      moodCircle.style.background = `conic-gradient(
+        from ${90 + angle}deg at 50% 50%,
+        #c084fc 0%,
+        #a78bfa 19%,
+        #a78bfa 20%,
+        #60a5fa 35%,
+        #38bdf8 59%,
+        #38bdf8 60%,
+        #22d3ee 80%,
+        #06b6d4 100%
+      )`;
 
-  .controls{
-    display:flex;
-    gap:10px;
-    margin-top:18px;
-    justify-content:center;
-    align-items:center;
-  }
+      // Смайлик
+      if (moodValue <= 19) emojiEl.textContent = '😞';
+      else if (moodValue <= 39) emojiEl.textContent = '🙁';
+      else if (moodValue <= 59) emojiEl.textContent = '🙂';
+      else if (moodValue <= 79) emojiEl.textContent = '😄';
+      else emojiEl.textContent = '✨';
 
-  .btn{
-    min-width:120px;
-    padding:10px 14px;
-    border-radius:12px;
-    border: 1px solid var(--glass-border);
-    background: linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.01));
+      valueEl.textContent = moodValue;
+
+      // Мягкая пульсация (только при изменении)
+      if (isDragging) {
+        moodCircle.classList.add('pulse');
+        moodCircle.addEventListener('animationend', () => {
+          moodCircle.classList.remove('pulse');
+        }, { once: true });
+      }
+    }
+
+    // Обработчики
+    function handleStart(clientY) {
+      isDragging = true;
+      startY = clientY;
+    }
+
+    function handleMove(clientY) {
+      if (!isDragging) return;
+      const dy = clientY - startY;
+      // Чувствительность: 2px = 1 единица
+      let newValue = moodValue - dy * 0.5;
+      newValue = Math.min(100, Math.max(0, newValue));
+      moodValue = Math.round(newValue);
+      updateUI();
+    }
+
+    function handleEnd() {
+      isDragging = false;
+    }
+
+    // Touch
+    moodCircle.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      handleStart(e.touches[0].clientY);
+    }, { passive: false });
+
+    moodCircle.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      handleMove(e.touches[0].clientY);
+    }, { passive: false });
+
+    moodCircle.addEventListener('touchend', handleEnd);
+
+    // Mouse
+    moodCircle.addEventListener('mousedown', (e) => {
+      handleStart(e.clientY);
+      document.addEventListener('mousemove', (e) => handleMove(e.clientY));
+      document.addEventListener('mouseup', () => {
+        handleEnd();
+        document.querySelectorAll('mousemove, mouseup').forEach(el => el.remove());
+      }, { once: true });
+    });
+
+    // Инициализация
+    updateUI();
+
+    // Сохранение
+    saveBtn.addEventListener('click', () => {
+      const entries = JSON.parse(localStorage.getItem('mood_entries') || '[]');
+      entries.push({
+        date: new Date().toISOString().split('T')[0],
+        mood: moodValue,
+        timestamp: Date.now()
+      });
+      localStorage.setItem('mood_entries', JSON.stringify(entries));
+      tg?.sendData?.(JSON.stringify({ action: 'mood', value: moodValue }));
+
+      statusEl.textContent = '✨ Сохранено';
+      saveBtn.disabled = true;
+      setTimeout(() => {
+        statusEl.textContent = '';
+        saveBtn.disabled = false;
+      }, 1800);
+    });
+  </script>
+</body>
+</html>
+
