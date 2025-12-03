@@ -7,63 +7,84 @@
   <script src="https://js.telegram.org/bot/api.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: var(--tg-theme-bg-color, #ffffff);
+      --text: var(--tg-theme-text-color, #000000);
+      --hint: var(--tg-theme-hint-color, #94a3b8);
+      --subtle: var(--tg-theme-secondary-bg-color, #f1f5f9);
+    }
     body {
-      background: var(--tg-theme-bg-color, #ffffff);
-      color: var(--tg-theme-text-color, #000000);
-      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       min-height: 100vh;
-      padding: 20px;
+      padding: 24px 16px;
     }
     .title {
-      font-size: 20px;
+      font-size: 22px;
       font-weight: 600;
-      margin-bottom: 24px;
+      margin-bottom: 32px;
       text-align: center;
+      opacity: 0.9;
     }
     .mood-circle {
       position: relative;
-      width: 200px;
-      height: 200px;
-      margin: 20px 0;
+      width: 220px;
+      height: 220px;
+    }
+    .circle-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      overflow: hidden;
+    }
+    .circle-fill {
+      width: 100%;
+      height: 100%;
+      background: conic-gradient(
+        from 90deg at 50% 50%,
+        /* 0–19: фиолетовый */
+        #8b5cf6 0%,
+        #a78bfa 19%,
+        /* 20–59: переход */
+        #a78bfa 20%,
+        #60a5fa 35%,
+        #38bdf8 59%,
+        /* 60–100: бирюзовый */
+        #38bdf8 60%,
+        #22d3ee 80%,
+        #06b6d4 100%
+      );
+      -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='white'/%3E%3Cpath d='M50,2 A48,48 0 1,1 50,2 Z' fill='black'/%3E%3C/svg%3E") center/contain no-repeat;
+      mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='white'/%3E%3Cpath d='M50,2 A48,48 0 1,1 50,2 Z' fill='black'/%3E%3C/svg%3E") center/contain no-repeat;
     }
     .circle-bg {
       position: absolute;
       width: 100%;
       height: 100%;
       border-radius: 50%;
-      border: 8px solid var(--tg-theme-hint-color, #e0e0e0);
-    }
-    .circle-fill {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      border-radius: 50%;
-      clip-path: polygon(50% 50%, 50% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 0%, 50% 0%);
-      background: conic-gradient(
-        #4caf50 0%,
-        #4caf50 60%,
-        #ff9800 60%,
-        #ff9800 90%,
-        #f44336 90%,
-        #f44336 100%
-      );
-      transform: rotate(-90deg);
+      background: var(--subtle);
+      z-index: -1;
     }
     .indicator {
       position: absolute;
       top: 50%;
       left: 50%;
-      width: 24px;
-      height: 24px;
-      background: var(--tg-theme-button-color, #3390ec);
+      width: 20px;
+      height: 20px;
+      background: white;
       border-radius: 50%;
-      transform: translate(-50%, -50%);
-      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      box-shadow:
+        0 2px 6px rgba(0,0,0,0.12),
+        0 0 0 4px var(--bg),
+        0 0 0 6px rgba(147, 197, 253, 0.5);
       z-index: 2;
+      pointer-events: none;
     }
     .center {
       position: absolute;
@@ -73,47 +94,33 @@
       text-align: center;
       z-index: 1;
     }
-    .emoji {
-      font-size: 48px;
-      line-height: 1;
-      transition: transform 0.2s;
-    }
-    .value {
-      font-size: 14px;
-      color: var(--tg-theme-hint-color, #777);
-      margin-top: 4px;
-    }
+    .emoji { font-size: 52px; line-height: 1; }
+    .value { font-size: 16px; font-weight: 500; margin-top: 6px; opacity: 0.7; }
     button {
-      background: var(--tg-theme-button-color, #3390ec);
-      color: var(--tg-theme-button-text-color, #ffffff);
+      background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+      color: white;
       border: none;
-      border-radius: 12px;
-      padding: 14px 28px;
-      font-size: 16px;
+      border-radius: 14px;
+      padding: 16px 32px;
+      font-size: 17px;
       font-weight: 600;
-      margin-top: 16px;
+      margin-top: 20px;
       cursor: pointer;
-      transition: opacity 0.2s;
+      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.25);
+      transition: all 0.2s;
     }
-    button:disabled {
-      opacity: 0.6;
-      cursor: default;
-    }
-    .status {
-      margin-top: 16px;
-      font-size: 14px;
-      color: var(--tg-theme-hint-color, #777);
-      text-align: center;
-      min-height: 1.4em;
-    }
+    button:active { transform: scale(0.98); }
+    .status { margin-top: 18px; font-size: 15px; color: var(--hint); text-align: center; }
   </style>
 </head>
 <body>
   <div class="title">Как ты себя чувствуешь?</div>
 
-  <div class="mood-circle" id="moodCircle">
+  <div class="mood-circle">
     <div class="circle-bg"></div>
-    <div class="circle-fill" id="circleFill"></div>
+    <div class="circle-container">
+      <div class="circle-fill" id="circleFill"></div>
+    </div>
     <div class="indicator" id="indicator"></div>
     <div class="center">
       <div class="emoji" id="emoji">🙂</div>
@@ -126,76 +133,78 @@
 
   <script>
     const tg = window.Telegram?.WebApp;
-    if (tg) {
-      tg.expand();
-      tg.ready();
-    }
+    if (tg) tg.expand(), tg.ready();
 
-    // DOM
-    const circle = document.getElementById('moodCircle');
     const indicator = document.getElementById('indicator');
     const emojiEl = document.getElementById('emoji');
     const valueEl = document.getElementById('value');
     const saveBtn = document.getElementById('saveBtn');
     const statusEl = document.getElementById('status');
+    const circleFill = document.getElementById('circleFill');
 
-    let moodValue = 50; // 0–100
+    let moodValue = 50;
+    const RADIUS = 88;
 
-    // Обновление UI
     function updateUI() {
-      // Позиция индикатора (по окружности)
-      const radius = 86; // (200 - 8*2 - 24)/2 ≈ 86
-      const angle = (moodValue / 100) * 2 * Math.PI - Math.PI / 2;
-      const x = radius * Math.cos(angle);
-      const y = radius * Math.sin(angle);
+      // Угол: 0 = вверху, растёт по часовой → 0°–360°
+      const angleDeg = (moodValue / 100) * 360;
+      const angleRad = (angleDeg - 90) * Math.PI / 180; // -90 для смещения: 0° = вверх
+
+      // Позиция индикатора
+      const x = RADIUS * Math.cos(angleRad);
+      const y = RADIUS * Math.sin(angleRad);
       indicator.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
 
-      // Заполнение круга
-      const fillAngle = (moodValue / 100) * 360;
-      document.getElementById('circleFill').style.clipPath = 
-        `polygon(50% 50%, 50% 0%, ${100}% 0%, ${100}% ${100}%, 0% ${100}%, 0% 0%, 50% 0%)`;
+      // Обновляем маску: от 0° до angleDeg — видимо
+      const largeArc = angleDeg > 180 ? 1 : 0;
+      const endX = 50 + 48 * Math.cos(angleDeg * Math.PI / 180);
+      const endY = 50 - 48 * Math.sin(angleDeg * Math.PI / 180);
 
-      // Смайлик и цвет
-      if (moodValue <= 30) {
-        emojiEl.textContent = '😞';
-        emojiEl.style.color = '#f44336';
-      } else if (moodValue <= 60) {
-        emojiEl.textContent = '🙂';
-        emojiEl.style.color = '#ff9800';
-      } else {
-        emojiEl.textContent = '😊';
-        emojiEl.style.color = '#4caf50';
-      }
+      const maskSVG = `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="48" fill="white"/>
+          <path d="M50,2 A48,48 0 ${largeArc},1 ${endX},${endY} Z" fill="black"/>
+        </svg>
+      `.replace(/\s+/g, ' ');
+
+      const url = `data:image/svg+xml,${encodeURIComponent(maskSVG)}`;
+      circleFill.style.mask = `url("${url}") center/contain no-repeat`;
+      circleFill.style.webkitMask = `url("${url}") center/contain no-repeat`;
+
+      // Смайлик
+      if (moodValue <= 19) emojiEl.textContent = '😞';
+      else if (moodValue <= 39) emojiEl.textContent = '🙁';
+      else if (moodValue <= 59) emojiEl.textContent = '🙂';
+      else if (moodValue <= 79) emojiEl.textContent = '😄';
+      else emojiEl.textContent = '😊';
 
       valueEl.textContent = moodValue;
     }
 
-    // Расчёт угла из координат
     function getAngleFromTouch(clientX, clientY) {
+      const circle = document.querySelector('.mood-circle');
       const rect = circle.getBoundingClientRect();
       const centerX = rect.left + rect.width / 2;
       const centerY = rect.top + rect.height / 2;
       const dx = clientX - centerX;
       const dy = clientY - centerY;
-      let angle = Math.atan2(dy, dx); // -π до +π
-      if (angle < -Math.PI / 2) angle += 2 * Math.PI; // сдвигаем, чтобы 0° был вверху
+      let angle = Math.atan2(-dy, dx) * 180 / Math.PI + 90; // 0° = вверх
+      if (angle < 0) angle += 360;
       return angle;
     }
 
-    // Обработчики
     function handleMove(e) {
       e.preventDefault();
       const clientX = e.touches ? e.touches[0].clientX : e.clientX;
       const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-      let angle = getAngleFromTouch(clientX, clientY);
-      // Преобразуем угол → значение 0–100
-      moodValue = Math.round(((angle + Math.PI / 2) / (2 * Math.PI)) * 100);
-      if (moodValue < 0) moodValue = 0;
+      const angle = getAngleFromTouch(clientX, clientY);
+      moodValue = Math.round((angle / 360) * 100);
       if (moodValue > 100) moodValue = 100;
+      if (moodValue < 0) moodValue = 0;
       updateUI();
     }
 
-    circle.addEventListener('mousedown', (e) => {
+    document.querySelector('.mood-circle').addEventListener('mousedown', (e) => {
       document.addEventListener('mousemove', handleMove);
       document.addEventListener('mouseup', () => {
         document.removeEventListener('mousemove', handleMove);
@@ -203,7 +212,7 @@
       handleMove(e);
     });
 
-    circle.addEventListener('touchstart', (e) => {
+    document.querySelector('.mood-circle').addEventListener('touchstart', (e) => {
       document.addEventListener('touchmove', handleMove, { passive: false });
       document.addEventListener('touchend', () => {
         document.removeEventListener('touchmove', handleMove);
@@ -211,32 +220,26 @@
       handleMove(e);
     });
 
-    // Инициализация
-    updateUI();
-
-    // Сохранение
     saveBtn.addEventListener('click', () => {
-      const entry = {
+      const entries = JSON.parse(localStorage.getItem('mood_entries') || '[]');
+      entries.push({
         date: new Date().toISOString().split('T')[0],
         mood: moodValue,
         timestamp: Date.now()
-      };
-
-      // 1. В localStorage
-      const entries = JSON.parse(localStorage.getItem('mood_entries') || '[]');
-      entries.push(entry);
+      });
       localStorage.setItem('mood_entries', JSON.stringify(entries));
+      tg?.sendData(JSON.stringify({ action: 'mood', mood: moodValue }));
 
-      // 2. Боту (если нужно)
-      tg?.sendData(JSON.stringify({ action: 'mood', ...entry }));
-
-      statusEl.textContent = '✅ Сохранено!';
+      statusEl.textContent = '✨ Сохранено';
       saveBtn.disabled = true;
       setTimeout(() => {
         statusEl.textContent = '';
         saveBtn.disabled = false;
-      }, 2000);
+      }, 1500);
     });
+
+    updateUI();
   </script>
 </body>
 </html>
+
